@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>管道小鸟</title>
+    <script src="js/source_load.js"></script>
+    <script src="js/bird.js"></script>
+    <script src="js/sky.js"></script>
+    <script src="js/land.js"></script>
+    <script src="js/pipe.js"></script>
+    <script src="js/time.js"></script>
+    <style>
+        /*按钮样式*/
+        #continue {
+            width: 200px;
+            height: 100px;
+            position: absolute;
+            left: 30%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px solid #000;
+            background-color: rgba(0, 0, 0, .5);
+            font: 1em "microsoft yahei";
+            text-align: center;
+            color: #fff;
+            border-radius: 15px;
+            display: none; /*隐藏*/
+        }
+
+        /*计数板样式*/
+        p {
+            position: absolute;
+            left: 700px;
+            top: 1%;
+            font: 1em "microsoft yahei";
+            color: red;
+            border: 1px solid #000;
+            background-color: rgba(0, 0, 0, .5);
+            font-weight: 900;
+        }
+    </style>
+</head>
+<body>
+<!--设置canvas画布，准备图片数据，当图片加载完成后执行回调函数-->
+<canvas id="cvs" width="800" height="600">请使用支持Canvas的浏览器</canvas>
+<button id="continue">游戏结束，点击重新开始</button>
+<p>已通过：<span id="num">1</span>个</p>
+<script>
+    //定义数组存放图片资源信息
+    var imgList = [
+        {"name": "birds", "src": "img/birds.png"},
+        {"name": "land", "src": "img/land.png"},
+        {"name": "pipe1", "src": "img/pipe1.png"},
+        {"name": "pipe2", "src": "img/pipe2.png"},
+        {"name": "sky", "src": "img/sky.png"}
+    ];
+    //获取画布
+    var cvs = document.getElementById("cvs");
+    //获取场景
+    var ctx = cvs.getContext("2d");
+
+    //设置gameover为false来控制函数的执行
+    //任何违规都会触发gameover=true；
+    var gameover = false;
+
+    //主函数
+    load(imgList, function (imgEls) {
+        //创建对象
+        //创建小鸟
+        var bird = new Bird(imgEls["birds"], 150, 100, 0.0003, 0.0006, ctx);
+        //创建天空
+        var sky1 = new Sky(imgEls["sky"], 0, -0.3, ctx);
+        var sky2 = new Sky(imgEls["sky"], 800, -0.3, ctx);
+        //创建地面
+        var land1 = new Land(imgEls["land"], 0, -0.3, ctx);
+        var land2 = new Land(imgEls["land"], 336 * 1, -0.3, ctx);
+        var land3 = new Land(imgEls["land"], 336 * 2, -0.3, ctx);
+        var land4 = new Land(imgEls["land"], 336 * 3, -0.3, ctx);
+        //创建管道
+        var pipe1 = new Pipe(imgEls["pipe2"], imgEls["pipe1"], 400, -0.1, ctx);
+        var pipe2 = new Pipe(imgEls["pipe2"], imgEls["pipe1"], 600, -0.1, ctx);
+        var pipe3 = new Pipe(imgEls["pipe2"], imgEls["pipe1"], 800, -0.1, ctx);
+        var pipe4 = new Pipe(imgEls["pipe2"], imgEls["pipe1"], 1000, -0.1, ctx);
+        var pipe5 = new Pipe(imgEls["pipe2"], imgEls["pipe1"], 1200, -0.1, ctx);
+
+        var preTime = Date.now(); //获取当前时间
+        var time = new Time(ctx, preTime);
+
+        //主循环
+        function run() {
+            var now = Date.now();
+            dt = now - preTime; //时间间隔
+            preTime = now; //刷新当前时间
+            ctx.clearRect(0, 0, 800, 600); //清空画布
+
+            //绘制天空
+            sky1.update(dt);
+            sky1.draw();
+            sky2.update(dt);
+            sky2.draw();
+            sky1.setCount(2); //设置无缝滚动
+
+            //绘制小鸟
+            bird.update(dt);
+            bird.draw();
+
+            //落到地面后从天空落下
+//            if(bird.y > 500){
+//                bird.y  = 0;
+//            }
+
+
+            //绘制管道
+            pipe1.update(dt);
+            pipe1.draw();
+            pipe2.update(dt);
+            pipe2.draw();
+            pipe3.update(dt);
+            pipe3.draw();
+            pipe4.update(dt);
+            pipe4.draw();
+            pipe5.update(dt);
+            pipe5.draw();
+            pipe1.setCount(5, 200);   //设置管道数量和间隔
+
+
+            //绘制地面
+            land1.update(dt);
+            land1.draw();
+            land2.update(dt);
+            land2.draw();
+            land3.update(dt);
+            land3.draw();
+            land4.update(dt);
+            land4.draw();
+            land1.setCount(4);  //设置无缝滚动
+            //计时绘制
+            time.draw(dt);
+
+            //            requestAnimationFrame(run);
+
+            //判断是否碰到管道
+            gameover = gameover || pipe1.hitTest(bird.x, bird.y);
+            gameover = gameover || pipe2.hitTest(bird.x, bird.y);
+            gameover = gameover || pipe3.hitTest(bird.x, bird.y);
+            gameover = gameover || pipe4.hitTest(bird.x, bird.y);
+            gameover = gameover || pipe5.hitTest(bird.x, bird.y);
+
+            if (bird.y < 0 || bird.y > 488 - 45 / 2) { //碰到天和地
+                gameover = true;
+            }
+            if (!gameover) {    //如果没有结束游戏则继续游戏
+                requestAnimationFrame(run);
+            } else { //显示继续游戏按钮
+                document.getElementById("continue").style.display = 'block';
+                document.getElementById("continue").onclick = function () {//按钮点击响应事件
+                    //刷新页面
+                    window.location.href = window.location.href;
+                    window.location.reload;
+                }
+            }
+        }
+
+        //第一次运行
+        requestAnimationFrame(run);
+        //设置点击事件，给小鸟一个瞬时的向上速度
+        cvs.addEventListener("click", function () {
+            bird.speed = -0.3;
+        })
+    })
+
+</script>
+</body>
+</html>
